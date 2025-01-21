@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using resturant1.Data;
 using resturant1.Models.Dto;
+using resturant1.Models.DTOs;
 using resturant1.Models.Entities;
+using resturant1.Models.Enums;
 using resturant1.Repositories;
 
 namespace resturant1.Services
@@ -76,7 +78,44 @@ namespace resturant1.Services
             return pagedResponse;
         }
 
-       
+        public async Task<DishDto> GetDishByIdAsync(Guid id)
+        {
+            var dish = await _dishRepository.GetDishByIdAsync(id);
+            if (dish == null) return null;
+
+            return new DishDto
+            {
+                Id = dish.Id,
+                Name = dish.Name,
+                Description = dish.Description,
+                Price = dish.Price,
+                Image = dish.Image,
+                Vegetarian = dish.Vegetarian,
+                Rating = dish.Ratings.Any() ? dish.Ratings.Average(r => r.Value) : 0,
+                Category = dish.Category.ToString()
+            };
+        }
+        public async Task<bool> UserHasOrderedDishByEmailAsync(Guid dishId, string userEmail)
+        {
+            // Find the user by their email
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+            if (user == null)
+            {
+                throw new Exception("User not found.");
+            }
+
+            // Check if the user has completed an order containing the specified dish
+            var hasOrderedDish = await _context.Orders
+                .AnyAsync(o => o.UserId == user.Id &&
+                               o.OrderItems.Any(oi => oi.DishId == dishId) &&
+                               o.Status == OrderStatus.Completed);
+
+            return hasOrderedDish;
+        }
+
+        
+
+      
 
 
     }
