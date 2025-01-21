@@ -48,6 +48,36 @@ namespace resturant1.Controllers
                 
             });
         }
-      
+        // Login user and generate JWT token
+         [AllowAnonymous]
+         [HttpPost("login")]
+         public async Task<IActionResult> Login(LoginDto loginDto)
+         {
+             if (!ModelState.IsValid)
+             {
+                 return BadRequest(new ErrorResponse
+                 {
+                     Status = "400",
+                     Message = "Bad Request: Invalid login credentials."
+                 });
+             }
+        
+             var token = await _userService.LoginUserAsync(loginDto);
+             if (token == null)
+             {
+                 return Unauthorized(new ErrorResponse
+                 {
+                     Status = "401",
+                     Message = "Unauthorized: Invalid email or password."
+                 });
+             }
+        
+             return Ok(new SuccessResponse
+             {
+                 Status = "200",
+                 Message = "Login successful.",
+                 Data = new { Token = token }
+             });
+         }
     }
 }
