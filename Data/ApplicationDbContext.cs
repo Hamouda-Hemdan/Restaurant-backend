@@ -13,7 +13,17 @@ namespace resturant1.Data
         }
 
         public DbSet<Dish> Dishes { get; set; }
-  
+   protected override void OnModelCreating(ModelBuilder modelBuilder)
+     {
+     base.OnModelCreating(modelBuilder);
+
+     modelBuilder.Entity<User>()
+         .Property(u => u.Id)
+         .HasConversion(
+             v => v.ToString(),
+             v => Guid.Parse(v)
+         );
+         }
 
     }
 }
