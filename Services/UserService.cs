@@ -67,6 +67,29 @@ namespace resturant1.Services
         
                return GenerateJwtToken(user);
            }
-        
+         private string GenerateJwtToken(User user)
+         {
+         var jwtSettings = _configuration.GetSection("JwtSettings");
+         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]));
+         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+    
+         var claims = new[]
+         {
+             new Claim(JwtRegisteredClaimNames.Sub, user.Email),
+             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+             new Claim(ClaimTypes.Email, user.Email)
+         };
+    
+         var token = new JwtSecurityToken(
+             issuer: jwtSettings["Issuer"],
+             audience: jwtSettings["Audience"],
+             claims: claims,
+             expires: DateTime.UtcNow.AddSeconds(Convert.ToInt32(jwtSettings["ExpiryInSeconds"])),
+             signingCredentials: creds
+         );
+    
+         return new JwtSecurityTokenHandler().WriteToken(token);
+         }
     }
 }
