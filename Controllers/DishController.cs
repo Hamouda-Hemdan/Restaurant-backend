@@ -23,10 +23,6 @@ namespace resturant1.Controllers
 
         [AllowAnonymous]
         [HttpGet]
-        [ProducesResponseType(typeof(PagedDishResponse), 200)]
-        [ProducesResponseType(typeof(ErrorResponse), 400)]
-        [ProducesResponseType(typeof(ErrorResponse), 500)]
-        [SwaggerOperation(Summary = "Get a list of dishes(menu)")]
         public async Task<IActionResult> GetAllDishes(
             [FromQuery] List<DishCategory>? categories = null,
             [FromQuery] bool? vegetarian = false,
@@ -68,9 +64,24 @@ namespace resturant1.Controllers
             }
         }
 
-        
-
-       
+        [AllowAnonymous]
+        [HttpGet("{id}")
+        public async Task<IActionResult> GetDishById(Guid id)
+        {
+            try
+            {
+                var dish = await _dishService.GetDishByIdAsync(id);
+                if (dish == null)
+                {
+                    return NotFound(new ErrorResponse
+                    {
+                        Status = "404",
+                        Message = "Dish not found."
+                    });
+                }
+                return Ok(dish);
+            }
+        }
 
         
     }
