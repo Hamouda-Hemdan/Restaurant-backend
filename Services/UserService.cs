@@ -56,5 +56,17 @@ namespace resturant1.Services
 
             return result;
         }
+           // Login user and generate JWT token
+           public async Task<string> LoginUserAsync(LoginDto loginDto)
+           {
+               var user = await _userManager.FindByEmailAsync(loginDto.Email);
+               if (user == null || !await _userManager.CheckPasswordAsync(user, loginDto.Password))
+               {
+                   return null;
+               }
+        
+               return GenerateJwtToken(user);
+           }
+        
     }
 }
