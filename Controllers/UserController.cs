@@ -79,5 +79,14 @@ namespace resturant1.Controllers
                  Data = new { Token = token }
              });
          }
+           public IActionResult Logout()
+  {
+      // In case of stateless JWT tokens, logging out can be done client-side by removing the token.
+      return Ok(new SuccessResponse
+      {
+          Status = "200",
+          Message = "Logged out successfully."
+      });
+  }
     }
 }
