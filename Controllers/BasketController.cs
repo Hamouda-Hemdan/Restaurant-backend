@@ -69,5 +69,24 @@ public class BasketController : ControllerBase
 
       return Ok(result.Message);
   }
+  // Remove a dish from the basket
+[HttpDelete("dish/{dishId}")]
+[Authorize]
+public async Task<IActionResult> RemoveDishFromBasket(Guid dishId, [FromQuery] bool inc = false)
+{
+    var email = User.FindFirstValue(ClaimTypes.Email);
+    if (string.IsNullOrEmpty(email))
+    {
+        return Unauthorized("Invalid token or email not found.");
+    }
+
+    var result = await _basketService.RemoveDishFromBasketAsync(email, dishId, inc);
+    if (!result.Success)
+    {
+        return BadRequest(result.Message);
+    }
+
+    return Ok(result.Message);
+}
 
 }
