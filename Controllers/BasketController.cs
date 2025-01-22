@@ -49,5 +49,25 @@ public class BasketController : ControllerBase
 
         return Ok(basketDto);
     }
+    
+      // Add a dish to the basket
+  [HttpPost("dish/{dishId}")]
+  [Authorize]
+  public async Task<IActionResult> AddDishToBasket(Guid dishId)
+  {
+      var email = User.FindFirstValue(ClaimTypes.Email);
+      if (string.IsNullOrEmpty(email))
+      {
+          return Unauthorized("Invalid token or email not found.");
+      }
+
+      var result = await _basketService.AddDishToBasketAsync(email, dishId);
+      if (!result.Success)
+      {
+          return BadRequest(result.Message);
+      }
+
+      return Ok(result.Message);
+  }
 
 }
