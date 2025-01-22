@@ -92,6 +92,54 @@ public class BasketService
             return (false, "Concurrency error occurred while adding dish.");
         }
     }
+    // Remove a dish from the basket
+public async Task<(bool Success, string Message)> RemoveDishFromBasketAsync(string email, Guid dishId, bool inc)
+{
+    var basket = await _basketRepository.GetBasketByEmailAsync(email);
+    if (basket == null)
+    {
+        return (false, "Basket not found.");
+    }
+
+    var item = basket.Items.FirstOrDefault(i => i.DishId == dishId);
+    if (item == null)
+    {
+        return (false, "Dish not found in basket.");
+    }
+
+    if (inc)
+    {
+        // Decrease the amount
+        item.Amount--;
+
+        if (item.Amount <= 0)
+        {
+            // Remove item if amount becomes 0
+            basket.Items.Remove(item);
+        }
+        else
+        {
+            // Update the total price
+            item.TotalPrice = item.Amount * item.Price;
+            _context.Entry(item).State = EntityState.Modified;
+        }
+    }
+    else
+    {
+        // Completely remove the item
+        basket.Items.Remove(item);
+    }
+
+    try
+    {
+        await _context.SaveChangesAsync();
+        return (true, "Dish removed from basket.");
+    }
+    catch (Exception ex)
+    {
+        return (false, $"Error occurred: {ex.Message}");
+    }
+}
 
 
 }
