@@ -113,7 +113,66 @@ namespace resturant1.Services
             return hasOrderedDish;
         }
 
-        
+          public async Task AddOrUpdateRatingAsync(Guid dishId, string userEmail, RatingDto ratingDto)
+  {
+      var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == userEmail);
+      if (user == null)
+      {
+          throw new Exception("User not found.");
+      }
+
+      // Check if the user has ordered the dish before
+      var hasOrderedDish = await _context.Orders
+          .AnyAsync(o => o.UserId == user.Id &&
+                         o.OrderItems.Any(oi => oi.DishId == dishId && o.Status == OrderStatus.Completed));
+
+      if (!hasOrderedDish)
+      {
+          throw new Exception("you did not ordered this dish before.");
+      }
+
+      // Proceed with adding or updating the rating
+      var existingRating = await _context.Ratings
+          .FirstOrDefaultAsync(r => r.DishId == dishId && r.UserId == user.Id);
+
+      if (existingRating != null)
+      {
+          existingRating.Value = (int)ratingDto.Value;
+          _context.Ratings.Update(existingRating);
+      }
+      else
+      {
+          var newRating = new Rating
+          {
+              Id = Guid.NewGuid(),
+              Value = (int)ratingDto.Value,
+              DishId = dishId,
+              UserId = user.Id
+          };
+          await _context.Ratings.AddAsync(newRating);
+      }
+
+      await _context.SaveChangesAsync();
+  }
+
+  public async Task<bool> CanUserRateDishAsync(string email, Guid dishId)
+  {
+      var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == email);
+      if (user == null)
+      {
+          throw new Exception("User not found.");
+      }
+
+      // Check if the user has completed an order containing the dish
+      var hasOrdered = await _context.Orders
+          .Include(o => o.OrderItems)
+          .AnyAsync(o =>
+              o.UserId == user.Id &&
+              o.Status == OrderStatus.Completed && // Only completed orders
+              o.OrderItems.Any(oi => oi.DishId == dishId));
+
+      return hasOrdered; 
+  }
 
       
 
