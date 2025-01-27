@@ -19,10 +19,29 @@ namespace resturant1.Controllers
             _orderService = orderService;
         }
 
-     
+        [HttpGet]
+        [Authorize]
+        [SwaggerOperation(Summary = "Git a list of orders")]
+        public async Task<IActionResult> GetOrders()
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+            {
+                return Unauthorized("Invalid token or email not found.");
+            }
+
+            var orders = await _orderService.GetUserOrdersAsync(email);
+            if (orders == null || !orders.Any())
+            {
+                return Ok(new List<OrderDTO>());
+            }
+
+            return Ok(orders);
+        }
 
         [HttpPost]
         [Authorize]
+        [SwaggerOperation(Summary = "Creating the order from dishes in basket")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDTO orderDto)
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
@@ -40,42 +59,28 @@ namespace resturant1.Controllers
             return Ok(result.Message);
         }
 
-        [HttpGet]
-     [Authorize]
-     public async Task<IActionResult> GetBasket()
-     {
-         var email = User.FindFirstValue(ClaimTypes.Email);
-         if (string.IsNullOrEmpty(email))
-         {
-             return Unauthorized("Invalid token or email not found.");
-         }
-    
-         var basket = await _basketService.GetBasketAsync(email);
-         if (basket == null)
-         {
-             return Ok(new BasketDTO { Id = Guid.Empty, Items = new List<BasketItemDTO>() });
-         }
-    
-         // Map entity to DTO
-         var basketDto = new BasketDTO
-         {
-             Id = basket.Id,
-             Items = basket.Items.Select(item => new BasketItemDTO
-             {
-                 DishId = item.DishId,
-                 Name = item.Name,
-                 Price = item.Price,
-                 Amount = item.Amount,
-                 TotalPrice = item.TotalPrice,
-                 Image = item.Image
-             }).ToList()
-         };
-    
-         return Ok(basketDto);
-     }
+     
 
+        [HttpGet("{id}")]
+        [Authorize]
+        [SwaggerOperation(Summary = "Get information about concrete order")]
+        public async Task<IActionResult> GetOrderById(Guid id)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+            {
+                return Unauthorized("Invalid token or email not found.");
+            }
 
-      
+            var order = await _orderService.GetOrderByIdAsync(id, email);
+
+            if (order == null)
+            {
+                return NotFound("Order not found.");
+            }
+
+            return Ok(order);
+        }
 
 
     }
