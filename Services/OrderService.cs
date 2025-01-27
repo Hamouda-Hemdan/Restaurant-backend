@@ -35,49 +35,77 @@ public class OrderService : IOrderService
 
         return orders;
     }
-     public async Task<(bool Success, string Message)> CreateOrderAsync(string email, CreateOrderDTO orderDto)
- {
-     var basket = await _basketRepository.GetBasketByEmailAsync(email);
-     if (basket == null || !basket.Items.Any())
-     {
-         return (false, "No items in the basket to create an order.");
-     }
 
-     var order = new Order
-     {
-         Id = Guid.NewGuid(),
-         UserId = basket.UserId,
-         OrderTime = DateTime.UtcNow,
-         DeliveryTime = orderDto.DeliveryTime,
-         Address = orderDto.Address,
-         Status = OrderStatus.InProcess,
-         Price = basket.Items.Sum(item => item.TotalPrice),
-         Items = basket.Items.ToList()
-     };
+    public async Task<(bool Success, string Message)> CreateOrderAsync(string email, CreateOrderDTO orderDto)
+    {
+        var basket = await _basketRepository.GetBasketByEmailAsync(email);
+        if (basket == null || !basket.Items.Any())
+        {
+            return (false, "No items in the basket to create an order.");
+        }
 
-     _context.Orders.Add(order);
+        var order = new Order
+        {
+            Id = Guid.NewGuid(),
+            UserId = basket.UserId,
+            OrderTime = DateTime.UtcNow,
+            DeliveryTime = orderDto.DeliveryTime,
+            Address = orderDto.Address,
+            Status = OrderStatus.InProcess,
+            Price = basket.Items.Sum(item => item.TotalPrice),
+            Items = basket.Items.ToList()
+        };
 
-     // Create OrderItems based on the BasketItems
-     foreach (var basketItem in basket.Items)
-     {
-         var orderItem = new OrderItem
-         {
-             DishId = basketItem.DishId,
-             Amount = basketItem.Amount,
-             TotalPrice = basketItem.TotalPrice,
-             OrderId = order.Id
-         };
+        _context.Orders.Add(order);
 
-         _context.OrderItems.Add(orderItem);
-     }
+        // Create OrderItems based on the BasketItems
+        foreach (var basketItem in basket.Items)
+        {
+            var orderItem = new OrderItem
+            {
+                DishId = basketItem.DishId,
+                Amount = basketItem.Amount,
+                TotalPrice = basketItem.TotalPrice,
+                OrderId = order.Id
+            };
 
-     await _context.SaveChangesAsync();
+            _context.OrderItems.Add(orderItem);
+        }
 
-     // Clear the basket after creating the order
-     _context.BasketItems.RemoveRange(basket.Items);
-     await _context.SaveChangesAsync();
+        await _context.SaveChangesAsync();
 
-     return (true, "Order created successfully.");
- }
+        // Clear the basket after creating the order
+        _context.BasketItems.RemoveRange(basket.Items);
+        await _context.SaveChangesAsync();
+
+        return (true, "Order created successfully.");
+    }
+
+    public async Task<(bool Success, string Message)> UpdateOrderStatusAsync(Guid orderId, string email)
+    {
+        var order = await _context.Orders
+            .Where(o => o.Id == orderId && o.User.UserName == email)
+            .FirstOrDefaultAsync();
+
+        if (order == null)
+        {
+            return (false, "Order not found for this user.");
+        }
+
+        if (order.Status == OrderStatus.Completed)
+        {
+            return (false, "Order is already completed.");
+        }
+
+        // Change the status to 'Completed'
+        order.Status = OrderStatus.Completed;
+        await _context.SaveChangesAsync();
+
+        return (true, "Order status updated to Completed.");
+    }
+
    
+
+
+
 }
