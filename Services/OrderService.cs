@@ -104,7 +104,42 @@ public class OrderService : IOrderService
         return (true, "Order status updated to Completed.");
     }
 
-   
+    public async Task<OrderDTO> GetOrderByIdAsync(Guid id, string email)
+    {
+        var order = await _context.Orders
+            .Where(o => o.Id == id && o.User.UserName == email)
+            .Include(o => o.OrderItems)  // Include related OrderItems
+            .ThenInclude(oi => oi.Dish)  // Include related Dish for each OrderItem
+            .FirstOrDefaultAsync();
+
+        if (order == null)
+        {
+            return null; // Order not found
+        }
+
+        // Map to OrderDTO
+        var orderDto = new OrderDTO
+        {
+            Id = order.Id,
+            OrderTime = order.OrderTime,
+            DeliveryTime = order.DeliveryTime,
+            Address = order.Address,
+            Status = order.Status.ToString(),
+            Price = order.Price,
+            Dishes = order.OrderItems.Select(item => new OrderItemDTO
+            {
+                Id = item.DishId,
+                Name = item.Dish?.Name ?? "Unknown",
+                Price = (decimal)(item.Dish?.Price ?? 0),
+                TotalPrice = item.TotalPrice,
+                Amount = item.Amount,
+                Image = item.Dish?.Image ?? "default_image_url"
+            }).ToList()
+        };
+
+        return orderDto;
+    }
+
 
 
 
