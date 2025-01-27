@@ -41,7 +41,6 @@ namespace resturant1.Controllers
 
         [HttpPost]
         [Authorize]
-        [SwaggerOperation(Summary = "Creating the order from dishes in basket")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateOrderDTO orderDto)
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
@@ -59,11 +58,28 @@ namespace resturant1.Controllers
             return Ok(result.Message);
         }
 
-     
+        [HttpPost("{id}/status")]
+        [Authorize]
+        public async Task<IActionResult> UpdateOrderStatus(Guid id)
+        {
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrEmpty(email))
+            {
+                return Unauthorized("Invalid token or email not found.");
+            }
+
+            var result = await _orderService.UpdateOrderStatusAsync(id, email);
+
+            if (!result.Success)
+            {
+                return BadRequest(result.Message);
+            }
+
+            return Ok(result.Message);
+        }
 
         [HttpGet("{id}")]
         [Authorize]
-        [SwaggerOperation(Summary = "Get information about concrete order")]
         public async Task<IActionResult> GetOrderById(Guid id)
         {
             var email = User.FindFirstValue(ClaimTypes.Email);
