@@ -82,7 +82,73 @@ namespace resturant1.Controllers
                 return Ok(dish);
             }
         }
+    [Authorize]
+ [HttpGet("{dishId}/rating/check")]
+ public async Task<IActionResult> CanUserRateDish(Guid dishId)
+ {
+     try
+     {
+         var email = User.FindFirstValue(ClaimTypes.Email);
+         if (string.IsNullOrEmpty(email))
+         {
+             return Unauthorized(new ErrorResponse
+             {
+                 Status = "401",
+                 Message = "Email not found in token."
+             });
+         }
 
+         var canRate = await _dishService.CanUserRateDishAsync(email, dishId);
+         return Ok(canRate);
+     }
+     catch (Exception)
+     {
+         return StatusCode(500, new ErrorResponse
+         {
+             Status = "500",
+             Message = "An error occurred while checking rating eligibility."
+         });
+     }
+ }
+
+ [Authorize]
+ [HttpPost("{dishId}/rating")]
+ public async Task<IActionResult> RateDish(Guid dishId, [FromBody] RatingDto ratingDto)
+ {
+     try
+     {
+         var email = User.FindFirstValue(ClaimTypes.Email);
+         if (string.IsNullOrEmpty(email))
+         {
+             return Unauthorized(new ErrorResponse
+             {
+                 Status = "401",
+                 Message = "Invalid token or email not found."
+             });
+         }
+
+         var hasOrderedDish = await _dishService.UserHasOrderedDishByEmailAsync(dishId, email);
+         if (!hasOrderedDish)
+         {
+             return BadRequest(new ErrorResponse
+             {
+                 Status = "400",
+                 Message = "You can only rate dishes that you have ordered."
+             });
+         }
+
+         await _dishService.AddOrUpdateRatingAsync(dishId, email, ratingDto);
+         return Ok("Rating added or updated successfully.");
+     }
+     catch (Exception ex)
+     {
+         return StatusCode(500, new ErrorResponse
+         {
+             Status = "500",
+             Message = $"An error occurred while adding or updating the rating: {ex.Message}"
+         });
+     }
+ }
         
     }
 }
