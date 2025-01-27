@@ -35,6 +35,49 @@ public class OrderService : IOrderService
 
         return orders;
     }
+     public async Task<(bool Success, string Message)> CreateOrderAsync(string email, CreateOrderDTO orderDto)
+ {
+     var basket = await _basketRepository.GetBasketByEmailAsync(email);
+     if (basket == null || !basket.Items.Any())
+     {
+         return (false, "No items in the basket to create an order.");
+     }
 
+     var order = new Order
+     {
+         Id = Guid.NewGuid(),
+         UserId = basket.UserId,
+         OrderTime = DateTime.UtcNow,
+         DeliveryTime = orderDto.DeliveryTime,
+         Address = orderDto.Address,
+         Status = OrderStatus.InProcess,
+         Price = basket.Items.Sum(item => item.TotalPrice),
+         Items = basket.Items.ToList()
+     };
+
+     _context.Orders.Add(order);
+
+     // Create OrderItems based on the BasketItems
+     foreach (var basketItem in basket.Items)
+     {
+         var orderItem = new OrderItem
+         {
+             DishId = basketItem.DishId,
+             Amount = basketItem.Amount,
+             TotalPrice = basketItem.TotalPrice,
+             OrderId = order.Id
+         };
+
+         _context.OrderItems.Add(orderItem);
+     }
+
+     await _context.SaveChangesAsync();
+
+     // Clear the basket after creating the order
+     _context.BasketItems.RemoveRange(basket.Items);
+     await _context.SaveChangesAsync();
+
+     return (true, "Order created successfully.");
+ }
    
 }
